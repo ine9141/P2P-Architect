@@ -1,4 +1,4 @@
-package data;
+package core.data;
 
 public class Chunk {
     private String fineName;
