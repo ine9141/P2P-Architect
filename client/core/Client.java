@@ -1,5 +1,7 @@
 package core;
 
+import core.data.Chunk;
+import core.data.MergeFile;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -16,6 +18,13 @@ public class Client {
             ObjectOutputStream objectOutput = new ObjectOutputStream(serverSocket.getOutputStream());
 
             String receivedObject = (String) objectInput.readObject();
+
+            MergeFile mergeFile = new MergeFile();
+            for(int i=0; i<2000; i++) {
+                Chunk chunk = new Chunk("A.file", i, i+"청크데이터");
+                mergeFile.addChunk(chunk);
+            }
+
             System.out.println("receivedObject = " + receivedObject);
             serverSocket.close(); // 통신 종료
         } catch (IOException | ClassNotFoundException e) {
