@@ -19,31 +19,16 @@ public class MergeFile {
     }
 
     void chunkToFile(int idx) {
-        String filePath = idxToFilename(idx); // 저장할 파일명
+        String filePath = idxToFilename(idx); // 저장할 파일명 (idx에 따라 A,B,C,D로 반환
+        try (FileOutputStream fos = new FileOutputStream(filePath);
+             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
-        try {
-
-            /* 청크들을 하나의 파일로 변환 */
-            FileOutputStream fileOut = new FileOutputStream(filePath, true);
-            ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
-            for(int i=0; i<2000; i++) {
-                objectOut.writeObject(chunks[idx][i].getFile());
-            }
-
-            /* 하나의 파일 데이터 출력 테스트 */
-            FileInputStream fis=new FileInputStream(filePath);
-            ObjectInputStream ois=new ObjectInputStream(fis);
-            Object obj;
-            while((obj=ois.readObject()) != null) {
-                System.out.println("obj = " + obj);
-            }
-
-
-
+            // 각각의 byte 배열을 순회하면서 파일에 기록
+            for(int i=0; i<2000; i++)
+                bos.write(chunks[idx][i].getFile());
+            System.out.println("파일 병합 완료");
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
