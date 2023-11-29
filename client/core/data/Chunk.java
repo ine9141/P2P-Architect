@@ -3,9 +3,9 @@ package core.data;
 public class Chunk {
     private String fineName;
     private int chunkNumber;
-    private Object file;
+    private byte[] file;
 
-    public Chunk(String fineName, int chunkNumber, Object file) {
+    public Chunk(String fineName, int chunkNumber, byte[] file) {
         this.fineName = fineName;
         this.chunkNumber = chunkNumber;
         this.file = file;
@@ -27,11 +27,11 @@ public class Chunk {
         this.chunkNumber = chunkNumber;
     }
 
-    public Object getFile() {
+    public byte[] getFile() {
         return file;
     }
 
-    public void setFile(Object file) {
+    public void setFile(byte[] file) {
         this.file = file;
     }
 }
