@@ -17,15 +17,17 @@ import core.handler.PeerHandler;
 
 public class Client {
     private static Queue<Socket> peerSockets = new ConcurrentLinkedQueue<>();
-    final private static int ClientPort = 44444;
+    final private static String fileName = "A.file";
+    final private static int ClientPort = 11111;
     final private static int chunkSize = 256000;
     final private static int numOfChunks = 2000;
-    final private static String fileName = "A.file";
     private static final Object lock = new Object();
     public static void main(String[] args) {
         try {
             // 중앙 서버에 등록
-            Socket centralServerSocket = new Socket("localhost", 23921);
+            Socket centralServerSocket = new Socket("127.0.0.1", 23921);
+            PrintWriter out = new PrintWriter(centralServerSocket.getOutputStream(), true);
+            out.println(String.valueOf(ClientPort));
             System.out.println("서버 연결 완료");
 
             new Thread(new PeerHandler(centralServerSocket)).start();
@@ -45,20 +47,19 @@ public class Client {
                 from = to;
             }
 
-
             ServerSocket serverSocket = new ServerSocket(ClientPort);
 
             new Thread(new ConnectionHandler(serverSocket)).start();
 
-            while(PeerHandler.peerNum < 4)
+            if(PeerHandler.peerNum == 4) {
+                for (Socket peerSocket : peerSockets) {
+                    new Thread(new FileReceiver(peerSocket, mergeFile)).start();
+                }
 
-            for (Socket peerSocket : peerSockets) {
-                new Thread(new FileReceiver(peerSocket,mergeFile)).start();
-            }
-
-            for(int i = 0 ; i < 4 ; i++){
-                if(i == myFileNum) continue;
-                new Thread(new FileSender(mergeFile,i)).start();
+                for (int i = 0; i < 4; i++) {
+                    if (i == myFileNum) continue;
+                    new Thread(new FileSender(mergeFile, i)).start();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

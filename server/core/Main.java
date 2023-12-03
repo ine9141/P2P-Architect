@@ -36,9 +36,10 @@ public class Main{
             try {
                 while (true) {
                     Socket peerSocket = serverSocket.accept();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
 
                     String peerIP = peerSocket.getInetAddress().getHostAddress();
-                    String peerPort = String.valueOf(peerSocket.getPort());
+                    String peerPort = in.readLine();
 
                     synchronized (lock) {
                         peerIPs[peerNum] = peerIP;
@@ -47,7 +48,7 @@ public class Main{
                         peerSockets.add(peerSocket);
                     }
 
-                    System.out.println("새로운 Client 탐지 : " + peerIP+":"+peerPort);
+                    System.out.println("새로운 Peer 탐지 : " + peerIP+":"+peerPort);
 
                     initNewPeer(peerSocket);
                     notifyPeersAboutNewPeer(peerIP, peerPort);
