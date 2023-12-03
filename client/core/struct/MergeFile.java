@@ -1,19 +1,27 @@
-package core.data;
+package core.struct;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MergeFile {
-    private Chunk[][] chunks = new Chunk[4][2000];
-    private int[] chunkCnt = new int[4];
+    final private static int chunkSize = 256000;
+    final private static int numOfChunks = 2000;
+    private Chunk[][] chunks = new Chunk[4][numOfChunks];
+    private static int[] chunkCnt = new int[]{0,0,0,0};
     //private Object[] file = new Object[4];
 
+    public Chunk getChunk(int fileNum, int chunkNum){
+        return chunks[fileNum][chunkNum];
+    }
+
+    public int findIdx(int client){
+        return chunkCnt[client];
+    }
+
     public void addChunk(Chunk chunk) {
-        int idx = filenameToIdx(chunk.getFineName());
+        int idx = chunk.getFileNum();
         chunks[idx][chunk.getChunkNumber()] = chunk; // 청크 저장
         chunkCnt[idx]++; // 청크 개수 증가
-        if (chunkCnt[idx] == 2000) { // 청크 2000개 차면 파일로 변환
+        if (chunkCnt[idx] == numOfChunks) { // 청크 2000개 차면 파일로 변환
             chunkToFile(idx);
         }
     }
@@ -24,7 +32,7 @@ public class MergeFile {
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
             // 각각의 byte 배열을 순회하면서 파일에 기록
-            for(int i=0; i<2000; i++)
+            for(int i=0; i<numOfChunks; i++)
                 bos.write(chunks[idx][i].getFile());
             System.out.println("파일 병합 완료");
         } catch (IOException e) {
@@ -44,7 +52,7 @@ public class MergeFile {
         }
     }
 
-    int filenameToIdx(String filename) {
+    public int filenameToIdx(String filename) {
         if(filename.equals("A.file")) {
             return 0;
         } else if(filename.equals("B.file")) {

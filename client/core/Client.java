@@ -1,57 +1,91 @@
 package core;
 
-import core.data.Chunk;
-import core.data.MergeFile;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
-import java.net.URISyntaxException;
+
+import java.io.*;
+import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import core.handler.FileReceiver;
+import core.handler.FileSender;
+import core.struct.Chunk;
+import core.struct.MergeFile;
+import core.handler.PeerHandler;
 
 public class Client {
+    private static Queue<Socket> peerSockets = new ConcurrentLinkedQueue<>();
+    final private static int ClientPort = 44444;
+    final private static int chunkSize = 256000;
+    final private static int numOfChunks = 2000;
+    final private static String fileName = "A.file";
+    private static final Object lock = new Object();
     public static void main(String[] args) {
         try {
+            // 중앙 서버에 등록
+            Socket centralServerSocket = new Socket("localhost", 23921);
+            System.out.println("서버 연결 완료");
 
-            Socket serverSocket = new Socket("localhost", 23921);
-            System.out.println("서버 연결 후 클라이언트 데이터 전송 완료");
+            new Thread(new PeerHandler(centralServerSocket)).start();
 
-            // ObjectInputStream을 사용하여 서버로부터 객체 수신
-            ObjectInputStream objectInput = new ObjectInputStream(serverSocket.getInputStream());
-            ObjectOutputStream objectOutput = new ObjectOutputStream(serverSocket.getOutputStream());
-
-            String receivedObject = (String) objectInput.readObject();
-
-            /* 청크로 쪼개고 MergeFile.addChunk에 담는 코드 */
+            //내 파일을 청크화
             MergeFile mergeFile = new MergeFile();
-            Path filePath = Paths.get(Client.class.getResource("data/A.file").toURI());
-            Long fileSize = Files.size(filePath);
-            System.out.println("fileSize = " + fileSize);
-
+            int myFileNum = mergeFile.filenameToIdx(fileName);
+            Path filePath = Paths.get(Client.class.getResource(fileName).toURI());
             byte[] fileData = Files.readAllBytes(filePath);
-            int chunkSize = 256000; // 청크 크기 설정
-            int numOfChunks =  fileData.length / chunkSize;
-            System.out.println("numOfChunks = " + numOfChunks);
-
             int to, from=0;
             for (int i = 0; i < numOfChunks; i++) {
                 to = Math.min(from + chunkSize, fileData.length);
                 byte[] chunkData = new byte[to - from];
                 System.arraycopy(fileData, from, chunkData, 0, to - from);
-                Chunk chunk = new Chunk("A.file", i, chunkData);
+                Chunk chunk = new Chunk(myFileNum, i, chunkData);
                 mergeFile.addChunk(chunk);
                 from = to;
             }
-            serverSocket.close(); // 통신 종료
-        } catch (IOException | ClassNotFoundException e) {
+
+
+            ServerSocket serverSocket = new ServerSocket(ClientPort);
+
+            new Thread(new ConnectionHandler(serverSocket)).start();
+
+            while(PeerHandler.peerNum < 4)
+
+            for (Socket peerSocket : peerSockets) {
+                new Thread(new FileReceiver(peerSocket,mergeFile)).start();
+            }
+
+            for(int i = 0 ; i < 4 ; i++){
+                if(i == myFileNum) continue;
+                new Thread(new FileSender(mergeFile,i)).start();
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static class ConnectionHandler implements Runnable {
+        private ServerSocket serverSocket;
+
+        public ConnectionHandler(ServerSocket serverSocket) {
+            this.serverSocket = serverSocket;
+        }
+
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    Socket peerSocket = serverSocket.accept();
+                    synchronized (lock) {
+                        peerSockets.add(peerSocket);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
