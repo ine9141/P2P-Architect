@@ -33,7 +33,7 @@ public class Client {
     public static void main(String[] args) throws IOException {
         Scanner sc = new Scanner(System.in);
         System.out.print("실행중인 클라이언트가 가지고 있는 파일의 이름을 입력하세요 (.txt 생략)");
-        fileName = sc.nextLine() + ".txt";
+        fileName = sc.nextLine() + ".file";
         System.out.println("실행중인 클라이언트의 포트를 입력하세요 (if fineName == A.file port is 11111");
         peerPort = sc.nextInt();
         try {
@@ -49,7 +49,9 @@ public class Client {
             //내 파일을 청크화
             MergeFile mergeFile = new MergeFile();
             int myFileNum = mergeFile.filenameToIdx(fileName);
-            Path filePath = Paths.get(Client.class.getResource(fileName).toURI());
+            String currentDirectory = System.getProperty("user.dir");
+            System.out.println(currentDirectory + fileName);
+            Path filePath = Paths.get(currentDirectory + "\\" + fileName);
             byte[] fileData = Files.readAllBytes(filePath);
             int to, from=0;
             for (int i = 0; i < numOfChunks; i++) {
@@ -104,8 +106,6 @@ public class Client {
 
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
