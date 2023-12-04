@@ -5,17 +5,16 @@ import core.struct.MergeFile;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.Arrays;
-
 import static core.handler.LogHandler.*;
-import static java.lang.Thread.sleep;
+
 
 public class FileServer implements Runnable {
     final private Socket peerSocket;
     final private MergeFile mergeFile;
     final private int myFileNum;
     final private Object lock = new Object();
-    public FileServer(Socket peerSocket, MergeFile mergeFile,int myFileNum) {
+
+    public FileServer(Socket peerSocket, MergeFile mergeFile, int myFileNum) {
         this.peerSocket = peerSocket;
         this.mergeFile = mergeFile;
         this.myFileNum = myFileNum;
@@ -28,14 +27,14 @@ public class FileServer implements Runnable {
             ObjectInputStream objectInput = new ObjectInputStream(peerSocket.getInputStream());
 
             while (mergeFile.isEnd()) {
-                makeLog("파일 전송 요청 : 현재 청크 : " + mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3));
-                System.out.println("파일 전송 요청 : 현재 청크 : " + mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3));
-                objectOutput.writeObject(mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3));
-
                 String msg;
                 int fileNum;
                 int chunkNum;
                 byte[] chunk;
+
+                makeLog("파일 전송 요청 : 현재 청크 : " + mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3)+":"+myFileNum);
+                System.out.println("파일 전송 요청 : 현재 청크 : " + mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3)+":"+myFileNum);
+                objectOutput.writeObject(mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3)+":"+myFileNum);
 
                 synchronized (lock) {
                     msg = (String) objectInput.readObject();
@@ -49,11 +48,11 @@ public class FileServer implements Runnable {
                     System.out.println("파일 수신 완료");
                     makeLog("파일 번호 : " + fileNum + ", " + chunkNum);
                     System.out.println("파일 번호 : " + fileNum + ", " + chunkNum);
-                    mergeFile.addChunk(new Chunk(fileNum, chunkNum, chunk),myFileNum);
+                    synchronized (lock) {
+                        mergeFile.addChunk(new Chunk(fileNum, chunkNum, chunk), myFileNum);
+                    }
                 }
-            } objectOutput.writeObject("end");
-
-
+            }
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

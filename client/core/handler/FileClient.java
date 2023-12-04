@@ -4,6 +4,9 @@ import core.struct.MergeFile;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+
 
 public class FileClient implements Runnable {
 
@@ -11,9 +14,6 @@ public class FileClient implements Runnable {
     final private String peerIP;
     final private String peerPort;
     final private Object lock = new Object();
-    private int endSignal = 0;
-
-
     public FileClient(MergeFile mergeFile, String peerIP, String peerPort) {
         this.mergeFile = mergeFile;
         this.peerIP = peerIP;
@@ -24,27 +24,28 @@ public class FileClient implements Runnable {
     public void run() {
         try {
             Socket peerSocket = new Socket(peerIP, Integer.parseInt(peerPort));
+            peerSocket.setSoTimeout(3000);
 
             ObjectOutputStream objectOutput = new ObjectOutputStream(peerSocket.getOutputStream());
             ObjectInputStream objectInput = new ObjectInputStream(peerSocket.getInputStream());
 
-            while (endSignal != 4) {
-                //sleep(10000);
+            while (true) {
                 boolean flag = true;
-                String[] idxInfo = ((String) objectInput.readObject()).split(":"); // 1:1004:2000:0
-                if (idxInfo[0].equals("end")) {
-                    endSignal++;
-                    continue;
+                String[] idxInfo;
+                try {
+                    idxInfo = ((String) objectInput.readObject()).split(":");
+                } catch (SocketTimeoutException | SocketException e){
+                    break;
                 }
 
                 for (int i = 0; i < 4; i++) {
-                    //요청 한 파일 idx
                     int need_idx = Integer.parseInt(idxInfo[i]);
                     int have_idx = mergeFile.findIdx(i);
 
                     if (have_idx > need_idx) {
                         LogHandler.makeLog("current data " + have_idx + " read data " + need_idx + ", " + i);
                         System.out.println("current data " + have_idx + " read data " + need_idx + ", " + i);
+
                         synchronized (lock) {
                             objectOutput.writeObject("OK");
                             objectOutput.writeObject(i);

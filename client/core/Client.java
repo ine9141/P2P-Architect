@@ -16,7 +16,6 @@ import core.struct.Chunk;
 import core.struct.MergeFile;
 
 import static core.handler.LogHandler.*;
-import static java.lang.Thread.sleep;
 
 public class Client {
     private static Queue<Socket> peerSockets = new ConcurrentLinkedQueue<>();
@@ -32,10 +31,18 @@ public class Client {
     private static final Object lock = new Object();
     public static void main(String[] args) throws IOException {
         Scanner sc = new Scanner(System.in);
-        System.out.print("실행중인 클라이언트가 가지고 있는 파일의 이름을 입력하세요 (.txt 생략)");
+        System.out.print("실행중인 클라이언트가 가지고 있는 파일의 이름을 입력하세요 (.file 생략) ");
         fileName = sc.nextLine() + ".file";
-        System.out.println("실행중인 클라이언트의 포트를 입력하세요 (if fineName == A.file port is 11111");
-        peerPort = sc.nextInt();
+        if(fileName.equals("A.file")) {
+            peerPort = 11111;
+        } else if(fileName.equals("B.file")) {
+            peerPort = 22222;
+        } else if(fileName.equals("C.file")) {
+            peerPort = 33333;
+        } else{
+            peerPort = 44444;
+        }
+
         try {
             //중앙 서버에 등록
             Socket socket = new Socket("127.0.0.1", 23921);
@@ -45,23 +52,6 @@ public class Client {
             out.println(peerPort);
             System.out.println("서버 연결 완료");
             makeLog("서버 연결 완료");
-
-            //내 파일을 청크화
-            MergeFile mergeFile = new MergeFile();
-            int myFileNum = mergeFile.filenameToIdx(fileName);
-            String currentDirectory = System.getProperty("user.dir");
-            System.out.println(currentDirectory + fileName);
-            Path filePath = Paths.get(currentDirectory + "\\" + fileName);
-            byte[] fileData = Files.readAllBytes(filePath);
-            int to, from=0;
-            for (int i = 0; i < numOfChunks; i++) {
-                to = Math.min(from + chunkSize, fileData.length);
-                byte[] chunkData = new byte[to - from];
-                System.arraycopy(fileData, from, chunkData, 0, to - from);
-                Chunk chunk = new Chunk(myFileNum, i, chunkData);
-                mergeFile.addChunk(chunk,myFileNum);
-                from = to;
-            }
 
             //서버로부터 클라이언트들의 IP와 Port를 받아오는 클래스
             while (peerNum<totalClients) {
@@ -84,25 +74,67 @@ public class Client {
                 }
             }
 
-            // 다른 peer가 연결됨
+            //내 파일을 청크화
+            MergeFile mergeFile = new MergeFile();
+            int myFileNum = mergeFile.filenameToIdx(fileName);
+            String currentDirectory = System.getProperty("user.dir");
+            System.out.println(currentDirectory + fileName);
+            Path filePath = Paths.get(currentDirectory + "\\" + fileName);
+            byte[] fileData = Files.readAllBytes(filePath);
+            int to, from=0;
+            for (int i = 0; i < numOfChunks; i++) {
+                to = Math.min(from + chunkSize, fileData.length);
+                byte[] chunkData = new byte[to - from];
+                System.arraycopy(fileData, from, chunkData, 0, to - from);
+                Chunk chunk = new Chunk(myFileNum, i, chunkData);
+                mergeFile.addChunk(chunk,myFileNum);
+                from = to;
+            }
+
             makeLog("P2P START");
             System.out.println("P2P START");
-            new Thread(new ConnectionHandler(serverSocket,mergeFile,myFileNum)).start();
 
-            // 다른 peer로 연결 시도
+            // 다른 peer가 연결됨
+            Thread[] client = new Thread[4];
             for (int i = 0; i < totalClients; i++) {
                 if (peerPorts[i].equals(String.valueOf(peerPort))) continue;
                 makeLog("File Client ON");
                 System.out.println("File Client ON");
-                new Thread(new FileClient(mergeFile, peerIPs[i], peerPorts[i])).start();
+                client[i] = new Thread(new FileClient(mergeFile, peerIPs[i], peerPorts[i]));
+                client[i].start();
             }
 
-            while(connectionNum != 3){
-                sleep(100);
+            // 다른 peer로 연결 시도
+            Thread connection = new Thread(new ConnectionHandler(serverSocket,mergeFile,myFileNum));
+            connection.start();
+            connection.join();
+
+            // 파일 전송을 요구
+            Thread[] server = new Thread[3];
+            int serverIdx = 0;
+            for(Socket peerSocket : peerSockets) {
+                makeLog("File Server ON");
+                System.out.println("File Server ON");
+                server[serverIdx] = new Thread(new FileServer(peerSocket, mergeFile, myFileNum));
+                server[serverIdx].start();
+                serverIdx++;
             }
+
             System.out.println(peerSockets.toString());
             makeLog("SYSTEM ALL STARTED");
             System.out.println("SYSTEM ALL STARTED");
+
+            for(int i = 0; i < 4; i++){
+                if(client[i] == null) continue;
+                client[i].join();
+            }
+
+            for(int i = 0; i < 3; i++) {
+                server[i].join();
+            }
+
+            out.println("end");
+            System.out.println("ALL SYSTEM DISCONNECTED");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -127,9 +159,6 @@ public class Client {
             try {
                 while (connectionNum != 3) {
                     Socket peerSocket = serverSocket.accept();
-                    makeLog("File Server ON");
-                    System.out.println("File Server ON");
-                    new Thread(new FileServer(peerSocket, mergeFile, myFileNum)).start();
                     makeLog(peerSocket.getPort() +"가 연결됨");
                     System.out.println(peerSocket.getPort() +"가 연결됨");
                     synchronized (lock) {

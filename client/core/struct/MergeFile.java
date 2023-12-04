@@ -31,10 +31,11 @@ public class MergeFile {
         int idx = chunk.getFileNum();
         if(chunks[idx][chunk.getChunkNumber()] != null) return;
 
-        chunks[idx][chunk.getChunkNumber()] = chunk; // 청크 저장
         synchronized (lock) {
-            chunkCnt[idx]++; // 청크 개수 증가
+            chunks[idx][chunk.getChunkNumber()] = chunk; // 청크 저장
+            chunkCnt[idx]++;
         }
+
         if (idx!=myFileNum&&chunkCnt[idx] == numOfChunks) { // 청크 2000개 차면 파일로 변환
             chunkToFile(idx);
         }
@@ -42,11 +43,12 @@ public class MergeFile {
 
     void chunkToFile(int idx) {
         String filePath = idxToFilename(idx); // 저장할 파일명 (idx에 따라 A,B,C,D로 반환
+        int i=0;
         try (FileOutputStream fos = new FileOutputStream("client/core/file/"+filePath);
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
             // 각각의 byte 배열을 순회하면서 파일에 기록
-            for(int i=0; i<numOfChunks; i++)
+            for(; i<numOfChunks; i++)
                 bos.write(chunks[idx][i].getFile());
             makeLog("파일 병합 완료");
             System.out.println("파일 병합 완료");
