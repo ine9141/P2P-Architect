@@ -7,7 +7,13 @@ public class MergeFile {
     final private static int numOfChunks = 2000;
     private Chunk[][] chunks = new Chunk[4][numOfChunks];
     private static int[] chunkCnt = new int[]{0,0,0,0};
-    //private Object[] file = new Object[4];
+    final private Object lock = new Object();
+
+    public boolean isEnd(){
+        for(int i = 0 ; i < 4 ; i++) if (chunkCnt[i] != numOfChunks) return true;
+        System.out.println(chunkCnt[0]+" "+chunkCnt[1]+" "+chunkCnt[2]+" "+chunkCnt[3]);
+        return false;
+    }
 
     public Chunk getChunk(int fileNum, int chunkNum){
         return chunks[fileNum][chunkNum];
@@ -20,7 +26,9 @@ public class MergeFile {
     public void addChunk(Chunk chunk) {
         int idx = chunk.getFileNum();
         chunks[idx][chunk.getChunkNumber()] = chunk; // 청크 저장
-        chunkCnt[idx]++; // 청크 개수 증가
+        synchronized (lock) {
+            chunkCnt[idx]++; // 청크 개수 증가
+        }
         if (chunkCnt[idx] == numOfChunks) { // 청크 2000개 차면 파일로 변환
             chunkToFile(idx);
         }
