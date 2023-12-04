@@ -22,7 +22,7 @@ public class MergeFile {
         return chunkCnt[client];
     }
 
-    public void addChunk(Chunk chunk) {
+    public void addChunk(Chunk chunk,int myFileNum) {
         int idx = chunk.getFileNum();
         if(chunks[idx][chunk.getChunkNumber()] != null) return;
 
@@ -30,14 +30,14 @@ public class MergeFile {
         synchronized (lock) {
             chunkCnt[idx]++; // 청크 개수 증가
         }
-        if (chunkCnt[idx] == numOfChunks) { // 청크 2000개 차면 파일로 변환
+        if (idx!=myFileNum&&chunkCnt[idx] == numOfChunks) { // 청크 2000개 차면 파일로 변환
             chunkToFile(idx);
         }
     }
 
     void chunkToFile(int idx) {
         String filePath = idxToFilename(idx); // 저장할 파일명 (idx에 따라 A,B,C,D로 반환
-        try (FileOutputStream fos = new FileOutputStream(filePath);
+        try (FileOutputStream fos = new FileOutputStream("client/core/file/"+filePath);
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
             // 각각의 byte 배열을 순회하면서 파일에 기록

@@ -1,6 +1,5 @@
 package core;
 
-
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
@@ -49,7 +48,7 @@ public class Client {
                 byte[] chunkData = new byte[to - from];
                 System.arraycopy(fileData, from, chunkData, 0, to - from);
                 Chunk chunk = new Chunk(myFileNum, i, chunkData);
-                mergeFile.addChunk(chunk);
+                mergeFile.addChunk(chunk,myFileNum);
                 from = to;
             }
 
@@ -75,7 +74,7 @@ public class Client {
 
             // 다른 peer가 연결됨
             System.out.println("P2P START");
-            new Thread(new ConnectionHandler(serverSocket,mergeFile)).start();
+            new Thread(new ConnectionHandler(serverSocket,mergeFile,myFileNum)).start();
 
             // 다른 peer로 연결 시도
             for (int i = 0; i < totalClients; i++) {
@@ -102,10 +101,12 @@ public class Client {
     private static class ConnectionHandler implements Runnable {
         private ServerSocket serverSocket;
         private MergeFile mergeFile;
+        private int myFileNum;
 
-        public ConnectionHandler(ServerSocket serverSocket, MergeFile mergeFile) {
+        public ConnectionHandler(ServerSocket serverSocket, MergeFile mergeFile,int myFileNum) {
             this.serverSocket = serverSocket;
             this.mergeFile = mergeFile;
+            this.myFileNum = myFileNum;
         }
 
         @Override
@@ -114,7 +115,7 @@ public class Client {
                 while (connectionNum != 3) {
                     Socket peerSocket = serverSocket.accept();
                     System.out.println("File Server ON");
-                    new Thread(new FileServer(peerSocket, mergeFile)).start();
+                    new Thread(new FileServer(peerSocket, mergeFile, myFileNum)).start();
                     System.out.println(peerSocket.getPort() +"가 연결됨");
                     synchronized (lock) {
                         peerSockets.add(peerSocket);
