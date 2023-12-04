@@ -3,11 +3,10 @@ package core.struct;
 import java.io.*;
 
 public class MergeFile {
-    final private static int chunkSize = 256000;
-    final private static int numOfChunks = 2000;
-    private Chunk[][] chunks = new Chunk[4][numOfChunks];
-    private static int[] chunkCnt = new int[]{0,0,0,0};
+    final private int numOfChunks = 2000;
     final private Object lock = new Object();
+    private Chunk[][] chunks = new Chunk[4][numOfChunks+1];
+    private int[] chunkCnt = new int[]{0,0,0,0};
 
     public boolean isEnd(){
         for(int i = 0 ; i < 4 ; i++) if (chunkCnt[i] != numOfChunks) return true;
@@ -25,6 +24,8 @@ public class MergeFile {
 
     public void addChunk(Chunk chunk) {
         int idx = chunk.getFileNum();
+        if(chunks[idx][chunk.getChunkNumber()] != null) return;
+
         chunks[idx][chunk.getChunkNumber()] = chunk; // 청크 저장
         synchronized (lock) {
             chunkCnt[idx]++; // 청크 개수 증가

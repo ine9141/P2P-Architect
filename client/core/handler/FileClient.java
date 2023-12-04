@@ -2,12 +2,11 @@ package core.handler;
 
 import core.struct.MergeFile;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+
+import static java.lang.Thread.sleep;
 
 public class FileClient implements Runnable {
 
@@ -28,30 +27,44 @@ public class FileClient implements Runnable {
         try {
             Socket peerSocket = new Socket(peerIP, Integer.parseInt(peerPort));
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
-            PrintWriter out = new PrintWriter(peerSocket.getOutputStream(), true);
+            ObjectOutputStream objectOutput = new ObjectOutputStream(peerSocket.getOutputStream());
+            ObjectInputStream objectInput = new ObjectInputStream(peerSocket.getInputStream());
 
-            while(mergeFile.isEnd()) {
+//            while(mergeFile.isEnd()) {
+            while(true){
+                //sleep(10000);
                 boolean flag = true;
-                String[] idxInfo = in.readLine().split(":"); // 1:1004
+                String[] idxInfo = ((String) objectInput.readObject()).split(":"); // 1:1004:2000:0
+
                 for (int i = 0; i < 4; i++) {
-                    if (Integer.parseInt(idxInfo[i]) < mergeFile.findIdx(i)) {
-                        synchronized (lock){
-                            out.println("OK");
-                            out.println(i + ":" + Integer.parseInt(idxInfo[i]) + ":" + new String(mergeFile.getChunk(i, Integer.parseInt(idxInfo[i])).getFile(), StandardCharsets.UTF_8));
+                    //요청 한 파일 idx
+                    int need_idx = Integer.parseInt(idxInfo[i]);
+                    int have_idx = mergeFile.findIdx(i);
+
+                    if (have_idx > need_idx) {
+                        System.out.println("current data " +have_idx+" read data " +need_idx+", "+i);
+                        synchronized (lock) {
+                            objectOutput.writeObject("OK");
+                            objectOutput.writeObject(i);
+                            objectOutput.writeObject(need_idx);
+                            objectOutput.writeObject(mergeFile.getChunk(i, need_idx).getFile());
                         }
                         flag = false;
                         break;
                     }
                 } if(flag) {
                     synchronized (lock) {
-                        out.println("NO");
-                        out.println("NO:");
+                        objectOutput.writeObject("NO");
+                        objectOutput.writeObject(0);
+                        objectOutput.writeObject(0);
+                        objectOutput.writeObject("NO".getBytes());
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
