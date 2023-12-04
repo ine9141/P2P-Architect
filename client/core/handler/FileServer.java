@@ -47,7 +47,9 @@ public class FileServer implements Runnable {
                     System.out.println("파일 번호 : " + fileNum + ", " + chunkNum);
                     mergeFile.addChunk(new Chunk(fileNum, chunkNum, chunk),myFileNum);
                 }
-            }
+            } objectOutput.writeObject("end");
+
+
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

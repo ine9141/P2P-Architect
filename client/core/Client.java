@@ -19,7 +19,7 @@ public class Client {
     private static Queue<Socket> peerSockets = new ConcurrentLinkedQueue<>();
     final private static int totalClients = 4;
     final private static String fileName = "D.file";
-    final private static int peerPort = 44444;
+    final private static int peerPort = 4444;
     public static int peerNum = 0;
     public static int connectionNum = 0;
     private static String[] peerIPs = new String[4];

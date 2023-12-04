@@ -4,9 +4,6 @@ import core.struct.MergeFile;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-
-import static java.lang.Thread.sleep;
 
 public class FileClient implements Runnable {
 
@@ -14,6 +11,7 @@ public class FileClient implements Runnable {
     final private String peerIP;
     final private String peerPort;
     final private Object lock = new Object();
+    private int endSignal = 0;
 
 
     public FileClient(MergeFile mergeFile, String peerIP, String peerPort) {
@@ -30,11 +28,15 @@ public class FileClient implements Runnable {
             ObjectOutputStream objectOutput = new ObjectOutputStream(peerSocket.getOutputStream());
             ObjectInputStream objectInput = new ObjectInputStream(peerSocket.getInputStream());
 
-//            while(mergeFile.isEnd()) {
             while(true){
+                if(endSignal == 4) break;
                 //sleep(10000);
                 boolean flag = true;
                 String[] idxInfo = ((String) objectInput.readObject()).split(":"); // 1:1004:2000:0
+                if(idxInfo[0].equals("end")){
+                    endSignal++;
+                    continue;
+                }
 
                 for (int i = 0; i < 4; i++) {
                     //요청 한 파일 idx
