@@ -7,6 +7,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
 
+import static core.handler.LogHandler.*;
 import static java.lang.Thread.sleep;
 
 public class FileServer implements Runnable {
@@ -27,7 +28,7 @@ public class FileServer implements Runnable {
             ObjectInputStream objectInput = new ObjectInputStream(peerSocket.getInputStream());
 
             while (mergeFile.isEnd()) {
-
+                makeLog("파일 전송 요청 : 현재 청크 : " + mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3));
                 System.out.println("파일 전송 요청 : 현재 청크 : " + mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3));
                 objectOutput.writeObject(mergeFile.findIdx(0) + ":" + mergeFile.findIdx(1) + ":" + mergeFile.findIdx(2) + ":" + mergeFile.findIdx(3));
 
@@ -42,8 +43,11 @@ public class FileServer implements Runnable {
                     chunkNum = (int) objectInput.readObject();
                     chunk = (byte[]) objectInput.readObject();
                 }
+
                 if (msg.equals("OK")) {
+                    makeLog("파일 수신 완료");
                     System.out.println("파일 수신 완료");
+                    makeLog("파일 번호 : " + fileNum + ", " + chunkNum);
                     System.out.println("파일 번호 : " + fileNum + ", " + chunkNum);
                     mergeFile.addChunk(new Chunk(fileNum, chunkNum, chunk),myFileNum);
                 }

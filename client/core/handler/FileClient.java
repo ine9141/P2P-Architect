@@ -28,12 +28,11 @@ public class FileClient implements Runnable {
             ObjectOutputStream objectOutput = new ObjectOutputStream(peerSocket.getOutputStream());
             ObjectInputStream objectInput = new ObjectInputStream(peerSocket.getInputStream());
 
-            while(true){
-                if(endSignal == 4) break;
+            while (endSignal != 4) {
                 //sleep(10000);
                 boolean flag = true;
                 String[] idxInfo = ((String) objectInput.readObject()).split(":"); // 1:1004:2000:0
-                if(idxInfo[0].equals("end")){
+                if (idxInfo[0].equals("end")) {
                     endSignal++;
                     continue;
                 }
@@ -44,7 +43,8 @@ public class FileClient implements Runnable {
                     int have_idx = mergeFile.findIdx(i);
 
                     if (have_idx > need_idx) {
-                        System.out.println("current data " +have_idx+" read data " +need_idx+", "+i);
+                        LogHandler.makeLog("current data " + have_idx + " read data " + need_idx + ", " + i);
+                        System.out.println("current data " + have_idx + " read data " + need_idx + ", " + i);
                         synchronized (lock) {
                             objectOutput.writeObject("OK");
                             objectOutput.writeObject(i);
@@ -54,7 +54,8 @@ public class FileClient implements Runnable {
                         flag = false;
                         break;
                     }
-                } if(flag) {
+                }
+                if (flag) {
                     synchronized (lock) {
                         objectOutput.writeObject("NO");
                         objectOutput.writeObject(0);

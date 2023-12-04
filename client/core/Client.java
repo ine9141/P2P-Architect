@@ -6,20 +6,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Queue;
+import java.util.Scanner;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import core.handler.FileServer;
 import core.handler.FileClient;
+import core.handler.LogHandler;
 import core.struct.Chunk;
 import core.struct.MergeFile;
 
+import static core.handler.LogHandler.*;
 import static java.lang.Thread.sleep;
 
 public class Client {
     private static Queue<Socket> peerSockets = new ConcurrentLinkedQueue<>();
     final private static int totalClients = 4;
-    final private static String fileName = "D.file";
-    final private static int peerPort = 4444;
+    private static String fileName;
+    private static int peerPort;
     public static int peerNum = 0;
     public static int connectionNum = 0;
     private static String[] peerIPs = new String[4];
@@ -27,7 +30,12 @@ public class Client {
     final private static int chunkSize = 256000;
     final private static int numOfChunks = 2000;
     private static final Object lock = new Object();
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("실행중인 클라이언트가 가지고 있는 파일의 이름을 입력하세요 (.txt 생략)");
+        fileName = sc.nextLine() + ".txt";
+        System.out.println("실행중인 클라이언트의 포트를 입력하세요 (if fineName == A.file port is 11111");
+        peerPort = sc.nextInt();
         try {
             //중앙 서버에 등록
             Socket socket = new Socket("127.0.0.1", 23921);
@@ -36,6 +44,7 @@ public class Client {
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
             out.println(peerPort);
             System.out.println("서버 연결 완료");
+            makeLog("서버 연결 완료");
 
             //내 파일을 청크화
             MergeFile mergeFile = new MergeFile();
@@ -68,17 +77,20 @@ public class Client {
                     peerPorts[peerNum] = _peerPort;
                     peerNum++;
 
+                    makeLog("새로운 Peer : " + _peerIP + ":" + _peerPort);
                     System.out.println("새로운 Peer : " + _peerIP + ":" + _peerPort);
                 }
             }
 
             // 다른 peer가 연결됨
+            makeLog("P2P START");
             System.out.println("P2P START");
             new Thread(new ConnectionHandler(serverSocket,mergeFile,myFileNum)).start();
 
             // 다른 peer로 연결 시도
             for (int i = 0; i < totalClients; i++) {
                 if (peerPorts[i].equals(String.valueOf(peerPort))) continue;
+                makeLog("File Client ON");
                 System.out.println("File Client ON");
                 new Thread(new FileClient(mergeFile, peerIPs[i], peerPorts[i])).start();
             }
@@ -87,6 +99,7 @@ public class Client {
                 sleep(100);
             }
             System.out.println(peerSockets.toString());
+            makeLog("SYSTEM ALL STARTED");
             System.out.println("SYSTEM ALL STARTED");
 
         } catch (IOException e) {
@@ -114,8 +127,10 @@ public class Client {
             try {
                 while (connectionNum != 3) {
                     Socket peerSocket = serverSocket.accept();
+                    makeLog("File Server ON");
                     System.out.println("File Server ON");
                     new Thread(new FileServer(peerSocket, mergeFile, myFileNum)).start();
+                    makeLog(peerSocket.getPort() +"가 연결됨");
                     System.out.println(peerSocket.getPort() +"가 연결됨");
                     synchronized (lock) {
                         peerSockets.add(peerSocket);

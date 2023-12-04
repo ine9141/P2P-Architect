@@ -1,6 +1,10 @@
 package core.struct;
 
+import core.handler.LogHandler;
+
 import java.io.*;
+
+import static core.handler.LogHandler.*;
 
 public class MergeFile {
     final private int numOfChunks = 2000;
@@ -8,8 +12,9 @@ public class MergeFile {
     private Chunk[][] chunks = new Chunk[4][numOfChunks+1];
     private int[] chunkCnt = new int[]{0,0,0,0};
 
-    public boolean isEnd(){
+    public boolean isEnd() throws IOException {
         for(int i = 0 ; i < 4 ; i++) if (chunkCnt[i] != numOfChunks) return true;
+        makeLog(chunkCnt[0]+" "+chunkCnt[1]+" "+chunkCnt[2]+" "+chunkCnt[3]);
         System.out.println(chunkCnt[0]+" "+chunkCnt[1]+" "+chunkCnt[2]+" "+chunkCnt[3]);
         return false;
     }
@@ -43,6 +48,7 @@ public class MergeFile {
             // 각각의 byte 배열을 순회하면서 파일에 기록
             for(int i=0; i<numOfChunks; i++)
                 bos.write(chunks[idx][i].getFile());
+            makeLog("파일 병합 완료");
             System.out.println("파일 병합 완료");
         } catch (IOException e) {
             e.printStackTrace();
