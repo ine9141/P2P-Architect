@@ -28,13 +28,16 @@ public class FileSender implements Runnable {
             BufferedReader in = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
             PrintWriter out = new PrintWriter(peerSocket.getOutputStream(), true);
             while(true) {
+                Boolean flag = true;
                 String[] idxInfo = in.readLine().split(":"); // 1:1004
                 for (int i = 0; i < 4; i++) {
                     if (Integer.parseInt(idxInfo[i]) < mergeFile.findIdx(i)) {
+                        out.println("OK");
+                        flag = false;
                         out.println(i + ":" + Integer.parseInt(idxInfo[i]) + ":" + new String(mergeFile.getChunk(i, Integer.parseInt(idxInfo[i])).getFile(), StandardCharsets.UTF_8));
                         break;
                     }
-                }
+                } if(flag) out.println("NO");
             }
         } catch (IOException e) {
             //e.printStackTrace();

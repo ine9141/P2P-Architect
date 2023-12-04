@@ -17,8 +17,9 @@ import core.handler.PeerHandler;
 
 public class Client {
     private static Queue<Socket> peerSockets = new ConcurrentLinkedQueue<>();
-    final private static String fileName = "A.file";
-    final private static int ClientPort = 11111;
+    private static int peerNum = 0;
+    final private static String fileName = "D.file";
+    final private static int ClientPort = 44444;
     final private static int chunkSize = 256000;
     final private static int numOfChunks = 2000;
     private static final Object lock = new Object();
@@ -51,16 +52,25 @@ public class Client {
 
             new Thread(new ConnectionHandler(serverSocket)).start();
 
-            if(PeerHandler.peerNum == 4) {
-                for (Socket peerSocket : peerSockets) {
-                    new Thread(new FileReceiver(peerSocket, mergeFile)).start();
-                }
 
-                for (int i = 0; i < 4; i++) {
-                    if (i == myFileNum) continue;
-                    new Thread(new FileSender(mergeFile, i)).start();
-                }
+            while(peerNum != 4){
+                if(peerNum == 4) break;
             }
+
+            System.out.println("P2P START");
+            for (Socket peerSocket : peerSockets) {
+                System.out.println("File Receiver ON");
+                new Thread(new FileReceiver(peerSocket, mergeFile)).start();
+
+            }
+
+            for (int i = 0; i < 4; i++) {
+                if (i == myFileNum) continue;
+                System.out.println("File Sender ON");
+                new Thread(new FileSender(mergeFile, i)).start();
+            }
+
+            System.out.println("SYSTEM ALL STARTED");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (URISyntaxException e) {
@@ -82,6 +92,7 @@ public class Client {
                     Socket peerSocket = serverSocket.accept();
                     synchronized (lock) {
                         peerSockets.add(peerSocket);
+                        peerNum++;
                     }
                 }
             } catch (IOException e) {
