@@ -44,6 +44,7 @@ public class Client {
                 byte[] chunkData = new byte[to - from];
                 System.arraycopy(fileData, from, chunkData, 0, to - from);
                 Chunk chunk = new Chunk("A.file", i, chunkData);
+                System.out.println("chunk length = " + chunkData.length);
                 mergeFile.addChunk(chunk);
                 from = to;
             }

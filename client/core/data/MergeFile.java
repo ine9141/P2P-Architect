@@ -1,6 +1,10 @@
 package core.data;
 
+import core.Client;
+
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,12 +24,18 @@ public class MergeFile {
 
     void chunkToFile(int idx) {
         String filePath = idxToFilename(idx); // 저장할 파일명 (idx에 따라 A,B,C,D로 반환
+
+
         try (FileOutputStream fos = new FileOutputStream(filePath);
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
+            System.out.println("최종 병합 시작");
             // 각각의 byte 배열을 순회하면서 파일에 기록
-            for(int i=0; i<2000; i++)
+            for(int i=0; i<2000; i++) {
                 bos.write(chunks[idx][i].getFile());
+                byte[] file = chunks[idx][i].getFile();
+                System.out.println("병합 chunk size = " + file.length);
+            }
             System.out.println("파일 병합 완료");
         } catch (IOException e) {
             e.printStackTrace();
